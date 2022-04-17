@@ -3,15 +3,11 @@ const Discord = require('discord.js');
 const client = new Discord.Client();
 const request = require('request');
 const querystring = require('querystring');
+const { MessageEmbed } = require('discord.js');
+
+let isOnline = false;
 
 const oauthTokenUrl = 'https://mtxserv.com/oauth/v2/token?';
-const viewerApiUrl =
-    'https://mtxserv.com/api/v1/viewers/game?ip=' +
-    config.gameserver_ip +
-    '&port=' +
-    config.gameserver_port +
-    '&type=' +
-    config.gameserver_type;
 
 const serverApiUrl = 'https://mtxserv.com/api/v1/game/712412/servers';
 
@@ -57,53 +53,21 @@ const getAccessToken = function(params, callback) {
     );
 };
 
-const stringify_viewer_response = function(data) {
-    const address = data.ip.toUpperCase() + ':' + data.port;
-
-    if (!data.is_online) {
-        return 'Server ' + address + ' is currently offline.';
-    }
-
-    return (
-        data.params.host_name +
-        ' (' +
-        data.params.used_slots +
-        '/' +
-        data.params.max_slots +
-        ') - ' +
-        address
-    );
-};
-
 client.on('ready', () => {
     console.log(`Logged in as ${client.user.tag}!`);
 });
 
 client.on('message', msg => {
     if (msg.content === '!status') {
-        getAccessToken(authParams, function(accessToken) {
-            request(
-                {
-                    url: viewerApiUrl + '&access_token=' + accessToken,
-                    json: true,
-                },
-                function(error, response, body) {
-                    if (null !== error || response.statusCode !== 200) {
-                        console.log(
-                            "Can't retrieve viewer data (" +
-                                response.statusCode +
-                                ' ' +
-                                (error !== null ? error : '') +
-                                ')',
-                        );
-                        msg.reply("An error occured, can't retrieve server data");
-                        return;
-                    }
-    
-                    msg.channel.send(stringify_viewer_response(body));
-                },
-            );
-        });
+        const embed = new MessageEmbed()
+            .setColor(isOnline ? 'GREEN' : 'RED')
+            .setTitle('Status du serveur')
+            .addFields(
+                { name:"Le serveur est actuellement:", value:  isOnline ? ":green_circle: Ouvert" : ":red_circle: Fermé" })
+            .setTimestamp()
+            .setFooter('Merci Lord', "https://m.media-amazon.com/images/I/71BviJmwbiL._AC_SL1497_.jpg");
+            ;
+        msg.channel.send({ embed });
     }
 
     else if (msg.content === '!ip') {
@@ -126,7 +90,18 @@ client.on('message', msg => {
                         return;
                     }
                     console.log(body)
-                    msg.channel.send(body[0].host+" - "+body[0].game+"\nip: "+body[0].ip+":"+body[0].port+"\nmdp: gangsta");
+                    const embed = new MessageEmbed()
+                        .setColor('BLUE')
+                        .setTitle('Adresse du serveur')
+                        .addFields(
+                            { name: `${body[0].host}`, value: `${body[0].game}` },
+                            { name: 'ip', value: `${body[0].ip}`+":"+`${body[0].port}` },
+                            { name: 'mdp', value: 'gangsta' },
+                        )
+                        .setTimestamp()
+                        .setFooter('Merci Lord', "https://m.media-amazon.com/images/I/71BviJmwbiL._AC_SL1497_.jpg");
+                    ;
+                    msg.channel.send({ embed });
                 },
             );
         });
@@ -152,13 +127,33 @@ client.on('message', msg => {
                         return;
                     }
                     console.log(body)
-                    msg.channel.send("Performance:\nCPU: "+body.cpu_used+"%"+"\nRAM: "+body.ram_used+" Mo"+"\nRAM_max: "+body.ram_max+"Mo");
+                    const embed = new MessageEmbed()
+                        .setColor('BLUE')
+                        .setTitle('Performance du serveur')
+                        .addFields(
+                            { name: `CPU`, value: `${body.cpu_used}`+" %" },
+                            { name: 'RAM', value: `${body.ram_used}`+" Mo" },
+                            { name: 'RAM_max', value: `${body.ram_max}`+" Mo" },
+                        )
+                        .setTimestamp()
+                        .setFooter('Merci Lord', "https://m.media-amazon.com/images/I/71BviJmwbiL._AC_SL1497_.jpg");
+                    ;
+                    msg.channel.send({ embed });
                 },
             );
         });
     }
 
     else if (msg.content === '!start' || msg.content === '!stop' || msg.content === '!update' || msg.content === '!restart') {
+
+        const customEmbed = (query, color) => {
+            return new MessageEmbed()
+            .setColor(`${color}`)
+            .setTitle(`${query}`)
+            .setTimestamp()
+            .setFooter('Merci Lord', "https://m.media-amazon.com/images/I/71BviJmwbiL._AC_SL1497_.jpg");
+        ;}
+        
         getAccessToken(authParams, function(accessToken) {
             request(
                 {
@@ -179,18 +174,27 @@ client.on('message', msg => {
                         return;
                     }
                     console.log(body)
+                    let embed = customEmbed('none', 'white');
+
                     switch (msg.content) {
                         case "!start":
-                            msg.reply("Lancement du serveur")
+                            isOnline = true;
+                            embed = customEmbed('Lancement du serveur', 'GREEN');
+                            msg.channel.send({ embed });
                             break;
                         case "!stop":
-                            msg.reply("Fermeture du serveur")
+                            isOnline = false;
+                            embed = customEmbed('Fermeture du serveur', 'RED');
+                            msg.channel.send({ embed });
                             break;
                         case "!update":
-                            msg.reply("Mise à jour du serveur")
+                            embed = customEmbed('Mise à jour du serveur', 'YELLOW');
+                            msg.channel.send({ embed });
                             break;
                         case "!restart":
-                            msg.reply("Restart du serveur")
+                            isOnline = true;
+                            embed = customEmbed('Restart du serveur', 'GREEN');
+                            msg.channel.send({ embed });
                             break;
                         default:
                             break;
@@ -201,7 +205,33 @@ client.on('message', msg => {
     }
 
     else if (msg.content === '!help') {
-        msg.channel.send('**Liste des commands du bot:**\n- **!start :** Démarre le serveur\n- **!stop :** Eteint le serveur\n- **!restart :** Relance le serveur\n- **!update :** Met à jour le serveur\n- **!perf :** Performance du serveur\n- **!status :** Etat du serveur\n- **!ip :** Champs de connection du serveur')
+        const embed = new MessageEmbed()
+            .setColor('BLUE')
+            .setTitle('Liste des commands du bot')
+            .addFields(
+                { name: '!start', value: 'Ouvre le serveur' },
+                { name: '!stop', value: 'Eteint le serveur' },
+                { name: '!restart', value: 'Relance le serveur' },
+                { name: '!update', value: 'Met à jour le serveur' },
+                { name: '!perf', value: 'Performance du serveur' },
+                { name: '!status', value: 'Etat du serveur' },
+                { name: '!ip', value: 'Champs de connection du serveur' },
+            )
+            .setTimestamp()
+            .setFooter('Merci Lord', "https://m.media-amazon.com/images/I/71BviJmwbiL._AC_SL1497_.jpg");
+        ;
+        msg.channel.send({ embed });
+    }
+
+    else if (msg.content === '!find Merkel') {
+        const embed = new MessageEmbed()
+            .setColor('BLUE')
+            .setTitle('Le sanglier Merkel')
+            .setImage('https://www.fun-academy.fr/wp-content/uploads/2021/02/valheim-taming.jpg')
+            .setTimestamp()
+            .setFooter('Merci Lord', "https://m.media-amazon.com/images/I/71BviJmwbiL._AC_SL1497_.jpg");
+        ;
+        msg.channel.send({ embed });
     }
     
 });
