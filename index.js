@@ -8,19 +8,20 @@ const ytdl = require('ytdl-core');
 const ytSearch = require('yt-search');
 
 let isOnline = false;
+let currentMusic;
 
 const queue = new Map();
 
 const oauthTokenUrl = 'https://mtxserv.com/oauth/v2/token?';
 
-const serverApiUrl = 'https://mtxserv.com/api/v1/game/712412/servers';
+const serverApiUrl = 'https://mtxserv.com/api/v1/game/717647/servers';
 
-const perfApiUrl = 'https://mtxserv.com//api/v1/game/612338/resources'
+const perfApiUrl = 'https://mtxserv.com//api/v1/game/617363/resources'
 
-const startApiUrl = 'https://mtxserv.com/api/v1/game/612338/actions/start'
-const stopApiUrl = 'https://mtxserv.com/api/v1/game/612338/actions/stop'
-const restartApiUrl = 'https://mtxserv.com/api/v1/game/612338/actions/restart'
-const updateApiUrl = 'https://mtxserv.com/api/v1/game/612338/actions/update'
+const startApiUrl = 'https://mtxserv.com/api/v1/game/617363/actions/start'
+const stopApiUrl = 'https://mtxserv.com/api/v1/game/617363/actions/stop'
+const restartApiUrl = 'https://mtxserv.com/api/v1/game/617363/actions/restart'
+const updateApiUrl = 'https://mtxserv.com/api/v1/game/617363/actions/update'
 
 const authParams = {
     grant_type: 'https://mtxserv.com/grants/api_key',
@@ -167,7 +168,7 @@ client.on('message', msg => {
                 request(
                     {
                         method: 'POST',
-                        url: (msg.content === "!start" ? startApiUrl : msg.content === "!stop" ? stopApiUrl : msg.content === "!update" ? updateApiUrl : restartApiUrl) + '?access_token=' + accessToken,
+                        url: (msg.content === "!start" ? startApiUrl : msg.content === "!close" ? stopApiUrl : msg.content === "!update" ? updateApiUrl : restartApiUrl) + '?access_token=' + accessToken,
                         json: true,
                     },
                     function(error, response, body) {
@@ -231,6 +232,7 @@ client.on('message', msg => {
                     { name: '!play', value: 'Joue la musique' },
                     { name: '!stop', value: 'Arrête la musique' },
                     { name: '!skip', value: 'Joue la musique suivante' },
+                    { name: '!list', value: 'Liste les prochaines musiques' },
                 )
                 .setTimestamp()
                 .setFooter('Merci Lord', "https://m.media-amazon.com/images/I/71BviJmwbiL._AC_SL1497_.jpg");
@@ -262,26 +264,75 @@ client.on('message', msg => {
             msg.channel.send({ embed });
             return;
         }
+        case "!list": {
+            const server_queue = queue.get(msg.guild.id);
+            const embed = new MessageEmbed()
+                .setColor('BLUE')
+                .setTitle('Prochaines musiques :')
+                .setTimestamp()
+                .setFooter('Merci Lord', "https://m.media-amazon.com/images/I/71BviJmwbiL._AC_SL1497_.jpg");
+                ;
+            if (!server_queue) { 
+                return msg.channel.send(`:warning: Il n'y a pas de musique dans la file d'attente !`); 
+            }
+            server_queue.songs.map( (item, index) => { embed.addField(`#${index+1}`, `${item.title}`) });
+            msg.channel.send({ embed });
+            return;
+        }
+        case "!res": {
+            let channel = msg.guild.me.voice.channel;
+            if(!msg.guild.me.voice.channel) return msg.channel.send(":warning: Vous devez être dans un channel");
+            msg.guild.me.voice.channel.leave();
+            if (!channel) return console.error("The channel does not exist!");
+
+            function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
+
+            sleep(2000).then(() => {
+                channel.join().then(connection => {
+                    console.log(currentMusic)
+                    //video_player(channel, currentMusic)
+                    const args = msg.content.slice(1).split(/ +/);
+                    const cmd = args.shift().toLowerCase();
+                
+
+                    console.log("Successfully connected");
+                }).catch(e => {
+                    console.error(e);
+                });
+            })
+            return;
+        }
     }
     if (msg.content.startsWith(`!play`) || msg.content.startsWith(`!stop`) || msg.content.startsWith(`!skip`)) {
         const args = msg.content.slice(1).split(/ +/);
         const cmd = args.shift().toLowerCase();
+        console.log(msg);
         execute(msg, args, cmd);
     }
 });
 
-async function execute(msg, args, cmd, client, Discord){
+client.on('voiceStateUpdate', (oldState, newState) => {
 
-        const voice_channel = msg.member.voice.channel;
-        if (!voice_channel) return msg.channel.send(':warning: Tu dois être dans un channel pour executer la commande!');
-        const permissions = voice_channel.permissionsFor(msg.client.user);
-        if (!permissions.has('CONNECT')) return msg.channel.send(':warning: Tu n\'a pas les permissions');
-        if (!permissions.has('SPEAK')) return msg.channel.send(':warning: Tu n\'a pas les permissions');
+    if (oldState.channelID === null || typeof oldState.channelID == 'undefined') return;
 
-        const server_queue = queue.get(msg.guild.id);
+    if (newState.id !== client.user.id) return;
 
-        if (cmd === 'play'){
-            if (!args.length) return msg.channel.send(':warning: Tu dois ajouter un second argument!');
+    return queue.delete(oldState.guild.id);
+    
+});
+
+async function execute(msg, args, cmd){
+
+    const voice_channel = msg.member.voice.channel;
+    if (!voice_channel) return msg.channel.send(':warning: Tu dois être dans un channel pour executer la commande!');
+    const permissions = voice_channel.permissionsFor(msg.client.user);
+    if (!permissions.has('CONNECT')) return msg.channel.send(':warning: Tu n\'a pas les permissions');
+    if (!permissions.has('SPEAK')) return msg.channel.send(':warning: Tu n\'a pas les permissions');
+
+    const server_queue = queue.get(msg.guild.id);
+
+    if (cmd === 'play'){
+        if (!args.length) return msg.channel.send(':warning: Tu dois ajouter un second argument!');
             let song = {};
 
             if (ytdl.validateURL(args[0])) {
@@ -334,13 +385,13 @@ async function execute(msg, args, cmd, client, Discord){
             }
         }
 
-        else if(cmd === 'skip') { skip_song(msg, server_queue); }
-        else if(cmd === 'stop') { stop_song(msg, server_queue); }
-    }
-    
+    else if(cmd === 'skip') { skip_song(msg, server_queue); }
+    else if(cmd === 'stop') { stop_song(msg, server_queue); }
+}
 
 const video_player = async (guild, song) => {
     const song_queue = queue.get(guild.id);
+    currentMusic = song;
 
     if (!song) {
         song_queue.voice_channel.leave();
