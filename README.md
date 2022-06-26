@@ -1,11 +1,11 @@
-# discordjs-viewer
+# Discord Bot MTX-SERV
 
-Get gameserver status on Discord with command `!status`.
+![Project](https://img.shields.io/badge/Personnal-Project-2F77DF?labelColor=679EEE&style=for-the-badge)
+![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=000000)
 
-This is a **very simple** implementation of mTxServ API with Discord.
+Get gameserver status on Discord with command `!status`
 
-![Demo](demo.png)
-
+This is a **simple** implementation of mTxServ API with Discord.
 
 # mTxServ credential
 
@@ -33,32 +33,29 @@ You need to create credential on Discord: https://discordapp.com/developers/appl
 npm install
 ```
 
-# Configuration
-
 To use this bot, you need to set your configuration in `config.json` :
 
 ```
 cp config.json.dist config.json
 ```
-
-List of gameserver types :
-
-* ark  
-* team-fortress-2
-* counter-strike-global-offensive
-* counter-strike-source
-* counter-strike-condition-zero
-* counter-strike-1-6
-* day-of-defeat-source
-* day-of-defeat-1-3
-* bungeecord
-* star-made
-* minecraft  
-* left-4-dead-2
-* garry-s-mod
-
-# Usage
+Start the bot from the terminal :
 
 ```
 node index.js
 ```
+# Commands
+- **!start** : start the server
+- **!close** : close the server
+- **!update** : update the server
+- **!restart** : restart the server
+- **!help** : list of commands
+- **!perf** : server performance
+- **!status** : servers status
+- **!ip** : servers ip /!\ change in the code /!\
+- **!play** "name" || "url" : play music
+- **!stop** : stop music
+- **!skip** : skip music
+- **!list** : list of upcoming songs
+- **!find Merkel** : find piggy Merkel
+- **!rank** : ranking of the best WOW servers
+
