@@ -3,8 +3,7 @@
 ![Project](https://img.shields.io/badge/Personnal-Project-2F77DF?labelColor=679EEE&style=for-the-badge)
 ![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=000000)
 
-Get gameserver status on Discord with command `!status`
-
+Get gameserver status on Discord
 This is a **simple** implementation of mTxServ API with Discord.
 
 # mTxServ credential
