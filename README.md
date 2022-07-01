@@ -57,4 +57,3 @@ node index.js
 - **!list** : list of upcoming songs
 - **!find Merkel** : find piggy Merkel
 - **!rank** : ranking of the best WOW servers
-
