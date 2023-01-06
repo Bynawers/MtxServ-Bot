@@ -1,27 +1,40 @@
-const Discord = require('discord.js');
-const config = require('./config.json');
-const client = new Discord.Client();
 const request = require('request');
 const querystring = require('querystring');
+
+const Discord = require('discord.js');
 const { MessageEmbed } = require('discord.js');
-const ytdl = require('ytdl-core');
-const ytSearch = require('yt-search');
+
+const client = new Discord.Client({
+    intents: [
+        "GUILDS",
+        "GUILD_MESSAGES",
+        "GUILD_MESSAGE_REACTIONS",
+        "GUILD_MESSAGE_TYPING",
+        "DIRECT_MESSAGES",
+        "DIRECT_MESSAGE_REACTIONS",
+        "DIRECT_MESSAGE_TYPING",
+    ],
+    partials: [
+        'CHANNEL',
+    ]
+});
+
+const config = require('./config.json');
 
 let isOnline = false;
-let currentMusic;
 
 const queue = new Map();
 
 const oauthTokenUrl = 'https://mtxserv.com/oauth/v2/token?';
 
-const serverApiUrl = 'https://mtxserv.com/api/v1/game/717647/servers';
+const serverApiUrl = 'https://mtxserv.com/api/v1/game/'+ config.id_serv+'/servers';
 
-const perfApiUrl = 'https://mtxserv.com//api/v1/game/617363/resources'
+const perfApiUrl = 'https://mtxserv.com//api/v1/game/'+config.id_serv_auth+'/resources'
 
-const startApiUrl = 'https://mtxserv.com/api/v1/game/617363/actions/start'
-const stopApiUrl = 'https://mtxserv.com/api/v1/game/617363/actions/stop'
-const restartApiUrl = 'https://mtxserv.com/api/v1/game/617363/actions/restart'
-const updateApiUrl = 'https://mtxserv.com/api/v1/game/617363/actions/update'
+const startApiUrl = 'https://mtxserv.com/api/v1/game/'+config.id_serv_auth+'/actions/start'
+const stopApiUrl = 'https://mtxserv.com/api/v1/game/'+config.id_serv_auth+'/actions/stop'
+const restartApiUrl = 'https://mtxserv.com/api/v1/game/'+config.id_serv_auth+'/actions/restart'
+const updateApiUrl = 'https://mtxserv.com/api/v1/game/'+config.id_serv_auth+'/actions/update'
 
 const authParams = {
     grant_type: 'https://mtxserv.com/grants/api_key',
@@ -33,7 +46,7 @@ const authParams = {
 const getAccessToken = function(params, callback) {
     request(
         {
-            url: oauthTokenUrl + querystring.stringify(params),
+            url: oauthTokenUrl + "grant_type=https%3A%2F%2Fmtxserv.com%2Fgrants%2Fapi_key&client_id="+config.client_id+"&client_secret="+config.client_secret+"&api_key="+config.api_key,
             json: true,
             followRedirect: false,
         },
@@ -50,6 +63,7 @@ const getAccessToken = function(params, callback) {
                         (error !== null ? error : '') +
                         ')',
                 );
+                console.log(oauthTokenUrl + querystring.stringify(params))
                 return;
             }
             console.log(body.access_token)
@@ -62,11 +76,11 @@ client.on('ready', () => {
     console.log(`Logged in as ${client.user.tag}!`);
 });
 
-client.on('message', msg => {
+client.on('message', message => {
 
-    const serverQueue = queue.get(msg.guild.id);
+    console.log(message.content)
 
-    switch(msg.content){
+    switch(message.content){
 
         case "!status": {
             const embed = new MessageEmbed()
@@ -77,7 +91,7 @@ client.on('message', msg => {
                 .setTimestamp()
                 .setFooter('Merci Lord', "https://m.media-amazon.com/images/I/71BviJmwbiL._AC_SL1497_.jpg");
                 ;
-            msg.channel.send({ embed });
+                message.channel.send({ embed });
             return;
         }
 
@@ -97,7 +111,7 @@ client.on('message', msg => {
                                     (error !== null ? error : '') +
                                     ')',
                             );
-                            msg.reply("An error occured, can't retrieve server data");
+                            message.reply("An error occured, can't retrieve server data");
                             return;
                         }
                         console.log(body)
@@ -112,7 +126,7 @@ client.on('message', msg => {
                             .setTimestamp()
                             .setFooter('Merci Lord', "https://m.media-amazon.com/images/I/71BviJmwbiL._AC_SL1497_.jpg");
                         ;
-                        msg.channel.send({ embed });
+                        message.channel.send({ embed });
                     },
                 );
             });
@@ -134,7 +148,7 @@ client.on('message', msg => {
                                     (error !== null ? error : '') +
                                     ')',
                             );
-                            msg.reply("An error occured, can't retrieve server data");
+                            message.reply("An error occured, can't retrieve server data");
                             return;
                         }
                         console.log(body)
@@ -149,7 +163,7 @@ client.on('message', msg => {
                             .setTimestamp()
                             .setFooter('Merci Lord', "https://m.media-amazon.com/images/I/71BviJmwbiL._AC_SL1497_.jpg");
                         ;
-                        msg.channel.send({ embed });
+                        message.channel.send({ embed });
                     },
                 );
             });
@@ -168,7 +182,7 @@ client.on('message', msg => {
                 request(
                     {
                         method: 'POST',
-                        url: (msg.content === "!start" ? startApiUrl : msg.content === "!close" ? stopApiUrl : msg.content === "!update" ? updateApiUrl : restartApiUrl) + '?access_token=' + accessToken,
+                        url: (message.content === "!start" ? startApiUrl : message.content === "!close" ? stopApiUrl : message.content === "!update" ? updateApiUrl : restartApiUrl) + '?access_token=' + accessToken,
                         json: true,
                     },
                     function(error, response, body) {
@@ -180,31 +194,31 @@ client.on('message', msg => {
                                     (error !== null ? error : '') +
                                     ')',
                             );
-                            msg.reply("Error : "+response.statusCode);
+                            message.reply("Error : "+response.statusCode);
                             return;
                         }
                         console.log(body)
                         let embed = customEmbed('none', 'white');
     
-                        switch (msg.content) {
+                        switch (message.content) {
                             case "!start":
                                 isOnline = true;
                                 embed = customEmbed('Lancement du serveur', 'GREEN');
-                                msg.channel.send({ embed });
+                                message.channel.send({ embed });
                                 break;
                             case "!close":
                                 isOnline = false;
                                 embed = customEmbed('Fermeture du serveur', 'RED');
-                                msg.channel.send({ embed });
+                                message.channel.send({ embed });
                                 break;
                             case "!update":
                                 embed = customEmbed('Mise à jour du serveur', 'YELLOW');
-                                msg.channel.send({ embed });
+                                message.channel.send({ embed });
                                 break;
                             case "!restart":
                                 isOnline = true;
                                 embed = customEmbed('Restart du serveur', 'GREEN');
-                                msg.channel.send({ embed });
+                                message.channel.send({ embed });
                                 break;
                             default:
                                 break;
@@ -228,16 +242,12 @@ client.on('message', msg => {
                     { name: '!status', value: 'Etat du serveur' },
                     { name: '!ip', value: 'Champs de connection du serveur' },
                     { name: '!rank', value: 'Classement (OFFICIEL) des meilleurs serveur Wow' },
-                    { name: '!find Merkel', value: 'Trouve Merkel' },
-                    { name: '!play', value: 'Joue la musique' },
-                    { name: '!stop', value: 'Arrête la musique' },
-                    { name: '!skip', value: 'Joue la musique suivante' },
-                    { name: '!list', value: 'Liste les prochaines musiques' },
+                    { name: '!find Merkel', value: 'Trouve Merkel' }
                 )
                 .setTimestamp()
                 .setFooter('Merci Lord', "https://m.media-amazon.com/images/I/71BviJmwbiL._AC_SL1497_.jpg");
                 ;
-            msg.channel.send({ embed });
+                message.channel.send({ embed });
             return;
         }
 
@@ -249,7 +259,7 @@ client.on('message', msg => {
                 .setTimestamp()
                 .setFooter('Merci Lord', "https://m.media-amazon.com/images/I/71BviJmwbiL._AC_SL1497_.jpg");
                 ;
-            msg.channel.send({ embed });
+            message.channel.send({ embed });
             return;
         }
 
@@ -261,11 +271,11 @@ client.on('message', msg => {
                 .setTimestamp()
                 .setFooter('Merci Lord', "https://m.media-amazon.com/images/I/71BviJmwbiL._AC_SL1497_.jpg");
                 ;
-            msg.channel.send({ embed });
+            message.channel.send({ embed });
             return;
         }
         case "!list": {
-            const server_queue = queue.get(msg.guild.id);
+            const server_queue = queue.get(message.guild.id);
             const embed = new MessageEmbed()
                 .setColor('BLUE')
                 .setTitle('Prochaines musiques :')
@@ -273,175 +283,13 @@ client.on('message', msg => {
                 .setFooter('Merci Lord', "https://m.media-amazon.com/images/I/71BviJmwbiL._AC_SL1497_.jpg");
                 ;
             if (!server_queue) { 
-                return msg.channel.send(`:warning: Il n'y a pas de musique dans la file d'attente !`); 
+                return message.channel.send(`:warning: Il n'y a pas de musique dans la file d'attente !`); 
             }
             server_queue.songs.map( (item, index) => { embed.addField(`#${index+1}`, `${item.title}`) });
-            msg.channel.send({ embed });
-            return;
-        }
-        case "!res": {
-            let channel = msg.guild.me.voice.channel;
-            if(!msg.guild.me.voice.channel) return msg.channel.send(":warning: Vous devez être dans un channel");
-            msg.guild.me.voice.channel.leave();
-            if (!channel) return console.error("The channel does not exist!");
-
-            function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
-
-            sleep(2000).then(() => {
-                channel.join().then(connection => {
-                    console.log(currentMusic)
-                    //video_player(channel, currentMusic)
-                    const args = msg.content.slice(1).split(/ +/);
-                    const cmd = args.shift().toLowerCase();
-                
-
-                    console.log("Successfully connected");
-                }).catch(e => {
-                    console.error(e);
-                });
-            })
+            message.channel.send({ embed });
             return;
         }
     }
-    if (msg.content.startsWith(`!play`) || msg.content.startsWith(`!stop`) || msg.content.startsWith(`!skip`)) {
-        const args = msg.content.slice(1).split(/ +/);
-        const cmd = args.shift().toLowerCase();
-        console.log(msg);
-        execute(msg, args, cmd);
-    }
 });
-
-client.on('voiceStateUpdate', (oldState, newState) => {
-
-    if (oldState.channelID === null || typeof oldState.channelID == 'undefined') return;
-
-    if (newState.id !== client.user.id) return;
-
-    return queue.delete(oldState.guild.id);
-    
-});
-
-async function execute(msg, args, cmd){
-
-    const voice_channel = msg.member.voice.channel;
-    if (!voice_channel) return msg.channel.send(':warning: Tu dois être dans un channel pour executer la commande!');
-    const permissions = voice_channel.permissionsFor(msg.client.user);
-    if (!permissions.has('CONNECT')) return msg.channel.send(':warning: Tu n\'a pas les permissions');
-    if (!permissions.has('SPEAK')) return msg.channel.send(':warning: Tu n\'a pas les permissions');
-
-    const server_queue = queue.get(msg.guild.id);
-
-    if (cmd === 'play'){
-        if (!args.length) return msg.channel.send(':warning: Tu dois ajouter un second argument!');
-            let song = {};
-
-            if (ytdl.validateURL(args[0])) {
-                const song_info = await ytdl.getInfo(args[0]);
-                song = { title: song_info.videoDetails.title, url: song_info.videoDetails.video_url }
-            } else {
-                const video_finder = async (query) =>{
-                    const video_result = await ytSearch(query);
-                    return (video_result.videos.length > 1) ? video_result.videos[0] : null;
-                }
-
-                const video = await video_finder(args.join(' '));
-                if (video){
-                    song = { title: video.title, url: video.url }
-                } else {
-                     msg.channel.send(':warning: vidéo introuvable');
-                }
-            }
-
-            if (!server_queue){
-
-                const queue_constructor = {
-                    voice_channel: voice_channel,
-                    text_channel: msg.channel,
-                    connection: null,
-                    songs: []
-                }
-                queue.set(msg.guild.id, queue_constructor);
-                queue_constructor.songs.push(song);
-    
-                try {
-                    const connection = await voice_channel.join();
-                    queue_constructor.connection = connection;
-                    video_player(msg.guild, queue_constructor.songs[0]);
-                } catch (err) {
-                    queue.delete(msg.guild.id);
-                    msg.channel.send(':warning: problème de connection');
-                    throw err;
-                }
-            } else{
-                server_queue.songs.push(song);
-                const embed = new MessageEmbed()
-                    .setColor('BLUE')
-                    .setTitle(`Ajout à la file d\'attente`)
-                    .setDescription(`${song.title}`)
-                    .setTimestamp()
-                    .setFooter('Merci Lord', "https://m.media-amazon.com/images/I/71BviJmwbiL._AC_SL1497_.jpg");
-                    ;
-                msg.channel.send({ embed });
-            }
-        }
-
-    else if(cmd === 'skip') { skip_song(msg, server_queue); }
-    else if(cmd === 'stop') { stop_song(msg, server_queue); }
-}
-
-const video_player = async (guild, song) => {
-    const song_queue = queue.get(guild.id);
-    currentMusic = song;
-
-    if (!song) {
-        song_queue.voice_channel.leave();
-        queue.delete(guild.id);
-        return;
-    }
-    const stream = ytdl(song.url, { filter: 'audioonly' });
-    song_queue.connection.play(stream, { seek: 0, volume: 0.5 })
-    .on('finish', () => {
-        song_queue.songs.shift();
-        video_player(guild, song_queue.songs[0]);
-    });
-    const embed = new MessageEmbed()
-        .setColor('BLUE')
-        .setTitle('Je chante actuellement:')
-        .setDescription(`${song.title}`)
-        .setTimestamp()
-        .setFooter('Merci Lord', "https://m.media-amazon.com/images/I/71BviJmwbiL._AC_SL1497_.jpg");
-        ;
-    await song_queue.text_channel.send({ embed });
-}
-
-const skip_song = (msg, server_queue) => {
-    if (!msg.member.voice.channel) return msg.channel.send(':warning: Tu dois être dans un channel pour executer la commande!');
-    if(!server_queue){
-        return msg.channel.send(`:warning: Il n'y a plus de musique dans la file d'attente !`);
-    }
-    server_queue.connection.dispatcher.end();
-}
-
-const stop_song = (msg, server_queue) => {
-    if (!msg.member.voice.channel) return msg.channel.send(':warning: Tu dois être dans un channel pour executer la commande!');
-
-    try {
-        server_queue.songs = [];
-        server_queue.connection.dispatcher.end();
-    } catch (err) {
-        msg.channel.send(":warning: Aucune musique en cours de lecture !");
-        return;
-    }
-    const embed = new MessageEmbed()
-        .setColor('RED')
-        .setTitle(`Okok je pars...`)
-        .setTimestamp()
-        .setFooter('Merci Lord', "https://m.media-amazon.com/images/I/71BviJmwbiL._AC_SL1497_.jpg");
-        ;
-    msg.channel.send({ embed });
-}
 
 client.login(config.discord_bot_token);
-
-// id : 712412
-// id_serv : 612338
