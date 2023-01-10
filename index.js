@@ -21,15 +21,13 @@ const client = new Discord.Client({
 
 const config = require('./config.json');
 
-let isOnline = false;
-
-const queue = new Map();
-
 const oauthTokenUrl = 'https://mtxserv.com/oauth/v2/token?';
+const base_url = "https://mtxserv.com/api/v1/game/";
 
 const serverApiUrl = 'https://mtxserv.com/api/v1/game/'+ config.id_serv+'/servers';
 
 const perfApiUrl = 'https://mtxserv.com//api/v1/game/'+config.id_serv_auth+'/resources'
+const statusUrl = "https://mtxserv.com/api/v1/viewers/game?ip="+config.ip+"&port="+config.port+"&type="+config.type
 
 const startApiUrl = 'https://mtxserv.com/api/v1/game/'+config.id_serv_auth+'/actions/start'
 const stopApiUrl = 'https://mtxserv.com/api/v1/game/'+config.id_serv_auth+'/actions/stop'
@@ -83,15 +81,36 @@ client.on('message', message => {
     switch(message.content){
 
         case "!status": {
-            const embed = new MessageEmbed()
-                .setColor(isOnline ? 'GREEN' : 'RED')
-                .setTitle('Status du serveur')
-                .addFields(
-                    { name:"Le serveur est actuellement:", value:  isOnline ? ":green_circle: Ouvert" : ":red_circle: Fermé" })
-                .setTimestamp()
-                .setFooter('Merci Lord', "https://m.media-amazon.com/images/I/71BviJmwbiL._AC_SL1497_.jpg");
-                ;
-                message.channel.send({ embed });
+
+            request(
+                {
+                    url: statusUrl,
+                    json: true,
+                },
+                function(error, response, body) {
+                    if (null !== error || response.statusCode !== 200) {
+                        console.log(
+                            "Can't retrieve viewer data (" +
+                                response.statusCode +
+                                ' ' +
+                                (error !== null ? error : '') +
+                                ')',
+                        );
+                        message.reply("An error occured, can't retrieve server data");
+                        return;
+                    }
+                    console.log(body)
+                    const embed = new MessageEmbed()
+                        .setColor(body.is_online ? 'GREEN' : 'RED')
+                        .setTitle('Status du serveur')
+                        .addFields(
+                            { name:"Le serveur est actuellement:", value:  body.is_online ? ":green_circle: Ouvert" : ":red_circle: Fermé" })
+                        .setTimestamp()
+                        .setFooter('Merci Lord', "https://m.media-amazon.com/images/I/71BviJmwbiL._AC_SL1497_.jpg");
+                    ;
+                    message.channel.send({ embed });
+                },
+            );
             return;
         }
 
@@ -241,7 +260,6 @@ client.on('message', message => {
                     { name: '!perf', value: 'Performance du serveur' },
                     { name: '!status', value: 'Etat du serveur' },
                     { name: '!ip', value: 'Champs de connection du serveur' },
-                    { name: '!rank', value: 'Classement (OFFICIEL) des meilleurs serveur Wow' },
                     { name: '!find Merkel', value: 'Trouve Merkel' }
                 )
                 .setTimestamp()
@@ -259,33 +277,6 @@ client.on('message', message => {
                 .setTimestamp()
                 .setFooter('Merci Lord', "https://m.media-amazon.com/images/I/71BviJmwbiL._AC_SL1497_.jpg");
                 ;
-            message.channel.send({ embed });
-            return;
-        }
-
-        case "!rank": {
-            const embed = new MessageEmbed()
-                .setColor('BLUE')
-                .setTitle('Ranking meilleur serveurs FR-WOW')
-                .setDescription(':first_place: Archimonde \n:second_place: Hyjal\n:third_place: Dalaran\n**#4** Ysondre\n**#5** Confrérie du Thorium\n**#6** Elune\n**#7** Sargeras\n**#8** Kael\'Thas\n**#9** Medivh\n**LE PIRE** Uldaman')
-                .setTimestamp()
-                .setFooter('Merci Lord', "https://m.media-amazon.com/images/I/71BviJmwbiL._AC_SL1497_.jpg");
-                ;
-            message.channel.send({ embed });
-            return;
-        }
-        case "!list": {
-            const server_queue = queue.get(message.guild.id);
-            const embed = new MessageEmbed()
-                .setColor('BLUE')
-                .setTitle('Prochaines musiques :')
-                .setTimestamp()
-                .setFooter('Merci Lord', "https://m.media-amazon.com/images/I/71BviJmwbiL._AC_SL1497_.jpg");
-                ;
-            if (!server_queue) { 
-                return message.channel.send(`:warning: Il n'y a pas de musique dans la file d'attente !`); 
-            }
-            server_queue.songs.map( (item, index) => { embed.addField(`#${index+1}`, `${item.title}`) });
             message.channel.send({ embed });
             return;
         }
