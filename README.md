@@ -1,10 +1,11 @@
 # Discord Bot MTX-SERV
 
 ![Project](https://img.shields.io/badge/Personnal-Project-2F77DF?labelColor=679EEE&style=for-the-badge)
-![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=000000)
+![Node](https://img.shields.io/badge/Node%20Js-339933?style=for-the-badge&logo=Node.js&logoColor=ffffff)
 
-Get gameserver status on Discord
-This is a **simple** implementation of mTxServ API with Discord.
+Get gameserver status and control your server on Discord
+
+This is a simple implementation of mTxServ API with Discord.
 
 # mTxServ credential
 
@@ -28,15 +29,25 @@ You need to create credential on Discord: https://discordapp.com/developers/appl
 
 # Install
 
+Dependencies
 ```
 npm install
 ```
 
-To use this bot, you need to set your configuration in `config.json` :
+To use this bot, you need to create and replace none values in your configuration `config.json` :
 
 ```
-cp config.json.dist config.json
+{
+    "id_serv": none, (in the url at your Mtxserv pannel)
+    "id_serv_auth": (get in a post request with getAccessToken function),
+    "grant_type": "https://mtxserv.com/grants/api_key",
+    "client_id": none, (MtxServ parameter)
+    "client_secret": "none, (MtxServ parameter)
+    "api_key": "none", (MtxServ parameter)
+    "discord_bot_token": "none" (Discord parameter)
+}
 ```
+
 Start the bot from the terminal :
 
 ```
@@ -51,9 +62,3 @@ node index.js
 - **!perf** : server performance
 - **!status** : servers status
 - **!ip** : servers ip /!\ change in the code /!\
-- **!play** "name" || "url" : play music
-- **!stop** : stop music
-- **!skip** : skip music
-- **!list** : list of upcoming songs
-- **!find Merkel** : find piggy Merkel
-- **!rank** : ranking of the best WOW servers
